@@ -19,4 +19,26 @@ do wykonania 9 podprogramow i bedziemy sie przelaczac miedzy nimi przyciskami (p
 > 6 bitowy generator liczb pseudolosowych (oparty o konkretna konfiguracje)
 
 2-3 zajecia na zadanie tak bedzie wychodzic 
+tematy prezentacji
+1    Arduino 
+2    Raspberry Pi
+3    Sterowniki PLC
+4    Mikrokontroler - co to? 
+5    Internet of Things - Jakub Budzich
+6    FPGA, ASIC - Mateusz Cętkowski 
+7    Architektura Harvardzka 
+8    CPU PIC 24/PIC 18   
+9    Generatory liczb pseudolosowych
+10    Przetwarzanie analogowo-cyfrowe
+11    Generator CRC
+12    Źródła resetów
+13    Pamięć Flash
+14    Interfejs PMP
+15    Interfejs I2C
+16    Interfejs UART
+17    Interfejs SPI
+18    Przerwania, priorytety przerwań
+19    Zegar czasu rzeczywistego i kalendarz
+20    Moduł Komparatora
+
 
