@@ -52,6 +52,8 @@ c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(data_
                               c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(crt0_standard.o) (__data_init_standard)
 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(crt_start_mode_normal.Meo)
                               (__crt_start_mode_normal)
+c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
+                              build/default/production/main.o (___delay32)
 
 
 xc16-ld 2.10 (B)
@@ -65,17 +67,21 @@ Default Scalar Model: Small
 section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
 .text                        0x200                0xce           0x135  (309)
-.text                        0x2ce                0x22            0x33  (51)
+.text                        0x2ce               0x108           0x18c  (396)
+.init.delay32                0x3d6                0x1c            0x2a  (42)
+.dinit                       0x3f2                0x10            0x18  (24)
 
-                 Total "program" memory used (bytes):          0x168  (360) <1%
+                 Total "program" memory used (bytes):          0x303  (771) <1%
 
 
 "data" Memory  [Origin = 0x800, Length = 0x2000]
 
 section                    address      alignment gaps    total length  (dec)
 -------                    -------      --------------    -------------------
+.nbss                        0x800                   0             0x2  (2)
+.ndata                       0x802                   0             0x2  (2)
 
-                 Total "data" memory used (bytes):              0  (0) 
+                 Total "data" memory used (bytes):            0x4  (4) <1%
 
 
 Dynamic Memory Usage
@@ -83,32 +89,48 @@ Dynamic Memory Usage
 region                     address                      maximum length  (dec)
 ------                     -------                      ---------------------
 heap                             0                                   0  (0)
-stack                        0x800                              0x2000  (8192)
+stack                        0x804                              0x1ffc  (8188)
 
-                 Maximum dynamic memory (bytes):         0x2000  (8192)
+                 Maximum dynamic memory (bytes):         0x1ffc  (8188)
 
 Info: Project is using a large data memory model when small data memory model is sufficient.
 
+
+External Symbols in Data Memory (by address):
+
+                    0x0800                  _portValue
+                    0x0802                  _numer_programu
+
+External Symbols in Data Memory (by name):
+
+                    0x0802                  _numer_programu
+                    0x0800                  _portValue
 
 External Symbols in Program Memory (by address):
 
                   0x000200                  __resetPRI
                   0x00023c                  __psv_init
-                  0x000252                  __data_init
                   0x000252                  __data_init_standard
+                  0x000252                  __data_init
                   0x0002c8                  __DefaultInterrupt
-                  0x0002ce                  _setTimer
-                  0x0002de                  _main
+                  0x0002ce                  _binUP
+                  0x000312                  _binDOWN
+                  0x000356                  _grayUP
+                  0x0003a6                  _main
+                  0x0003d6                  ___delay32
 
 External Symbols in Program Memory (by name):
 
                   0x0002c8                  __DefaultInterrupt
+                  0x0003d6                  ___delay32
                   0x000252                  __data_init
                   0x000252                  __data_init_standard
                   0x00023c                  __psv_init
                   0x000200                  __resetPRI
-                  0x0002de                  _main
-                  0x0002ce                  _setTimer
+                  0x000312                  _binDOWN
+                  0x0002ce                  _binUP
+                  0x000356                  _grayUP
+                  0x0003a6                  _main
 
 Memory Configuration
 
@@ -179,22 +201,26 @@ __CONFIG1
 .comment
  *(.comment)
 
-.debug_info       0x000000        0x235
+.debug_info       0x000000        0x3e3
  *(.debug_info)
- .debug_info      0x000000        0x235 build/default/production/main.o
+ .debug_info      0x000000        0x3e3 build/default/production/main.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev     0x000000         0x88
+.debug_abbrev     0x000000        0x103
  *(.debug_abbrev)
- .debug_abbrev    0x000000         0x88 build/default/production/main.o
+ .debug_abbrev    0x000000        0x103 build/default/production/main.o
 
-.debug_line       0x000000        0x113
+.debug_line       0x000000        0x14e
  *(.debug_line)
- .debug_line      0x000000        0x113 build/default/production/main.o
+ .debug_line      0x000000        0x14e build/default/production/main.o
 
-.debug_frame      0x000000         0x48
+.debug_frame      0x000000         0x7c
  *(.debug_frame)
- .debug_frame     0x000000         0x48 build/default/production/main.o
+ .debug_frame     0x000000         0x7c build/default/production/main.o
+
+.debug_str        0x000000         0x21
+ *(.debug_str)
+ .debug_str       0x000000         0x21 build/default/production/main.o
 
 .debug_loc
  *(.debug_loc)
@@ -203,10 +229,10 @@ __CONFIG1
  *(.debug_macinfo)
 
 .debug_pubnames
-                  0x000000         0x28
+                  0x000000         0x5d
  *(.debug_pubnames)
  .debug_pubnames
-                  0x000000         0x28 build/default/production/main.o
+                  0x000000         0x5d build/default/production/main.o
 
 .debug_ranges
  *(.debug_ranges)
@@ -794,20 +820,31 @@ LOAD c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-elf.a
 END GROUP
 OUTPUT(dist/default/production/169224_zad_1.X.production.elf elf32-pic30)
 LOAD default_isr
+LOAD data_init
 
 .debug_pubtypes
-                  0x000018         0x1f
+                  0x000018         0x3e
  .debug_pubtypes
-                  0x000018         0x1f build/default/production/main.o
+                  0x000018         0x3e build/default/production/main.o
 
 __c30_signature
-                  0x000037         0x12
+                  0x000056         0x18
  __c30_signature
-                  0x000037          0x6 build/default/production/main.o
+                  0x000056          0x6 build/default/production/main.o
  __c30_signature
-                  0x00003d          0x6 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(crt0_standard.o)
+                  0x00005c          0x6 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(crt0_standard.o)
  __c30_signature
-                  0x000043          0x6 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(data_init_standard.o)
+                  0x000062          0x6 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(data_init_standard.o)
+ __c30_signature
+                  0x000068          0x6 c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
+
+.nbss               0x0800          0x2
+ .nbss              0x0800          0x2 build/default/production/main.o
+                    0x0800                  _portValue
+
+.ndata              0x0802          0x2
+ .ndata             0x0802          0x2 build/default/production/main.o
+                    0x0802                  _numer_programu
 
 .config_JTAGEN    0x0157fe          0x2
  .config_JTAGEN
@@ -816,7 +853,16 @@ __c30_signature
 .config_IESO      0x0157fc          0x2
  .config_IESO     0x0157fc          0x2 build/default/production/main.o
 
-.text             0x0002ce         0x22
- .text            0x0002ce         0x22 build/default/production/main.o
-                  0x0002ce                  _setTimer
-                  0x0002de                  _main
+.text             0x0002ce        0x108
+ .text            0x0002ce        0x108 build/default/production/main.o
+                  0x0002ce                  _binUP
+                  0x000312                  _binDOWN
+                  0x000356                  _grayUP
+                  0x0003a6                  _main
+
+.init.delay32     0x0003d6         0x1c
+ .init.delay32    0x0003d6         0x1c c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
+                  0x0003d6                  ___delay32
+
+.dinit            0x0003f2         0x10
+ .dinit           0x0003f2         0x10 data_init
