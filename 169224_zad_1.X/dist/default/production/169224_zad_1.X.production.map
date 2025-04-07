@@ -67,11 +67,11 @@ Default Scalar Model: Small
 section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
 .text                        0x200                0xce           0x135  (309)
-.text                        0x2ce               0x108           0x18c  (396)
-.init.delay32                0x3d6                0x1c            0x2a  (42)
-.dinit                       0x3f2                0x10            0x18  (24)
+.text                        0x2ce               0x2e2           0x453  (1107)
+.init.delay32                0x5b0                0x1c            0x2a  (42)
+.dinit                       0x5cc                0x10            0x18  (24)
 
-                 Total "program" memory used (bytes):          0x303  (771) <1%
+                 Total "program" memory used (bytes):          0x5ca  (1482) 1%
 
 
 "data" Memory  [Origin = 0x800, Length = 0x2000]
@@ -113,24 +113,38 @@ External Symbols in Program Memory (by address):
                   0x000252                  __data_init_standard
                   0x000252                  __data_init
                   0x0002c8                  __DefaultInterrupt
-                  0x0002ce                  _binUP
-                  0x000312                  _binDOWN
-                  0x000356                  _grayUP
-                  0x0003a6                  _main
-                  0x0003d6                  ___delay32
+                  0x0002ce                  _init
+                  0x0002de                  _zmiana_przycisku
+                  0x000326                  _binUP
+                  0x000352                  _binDOWN
+                  0x00037e                  _grayUP
+                  0x0003b6                  _grayDOWN
+                  0x0003ee                  _bcdUP
+                  0x000440                  _bcdDOWN
+                  0x00049e                  _snake
+                  0x000504                  _kolejka
+                  0x000550                  _main
+                  0x0005b0                  ___delay32
 
 External Symbols in Program Memory (by name):
 
                   0x0002c8                  __DefaultInterrupt
-                  0x0003d6                  ___delay32
+                  0x0005b0                  ___delay32
                   0x000252                  __data_init
                   0x000252                  __data_init_standard
                   0x00023c                  __psv_init
                   0x000200                  __resetPRI
-                  0x000312                  _binDOWN
-                  0x0002ce                  _binUP
-                  0x000356                  _grayUP
-                  0x0003a6                  _main
+                  0x000440                  _bcdDOWN
+                  0x0003ee                  _bcdUP
+                  0x000352                  _binDOWN
+                  0x000326                  _binUP
+                  0x0003b6                  _grayDOWN
+                  0x00037e                  _grayUP
+                  0x0002ce                  _init
+                  0x000504                  _kolejka
+                  0x000550                  _main
+                  0x00049e                  _snake
+                  0x0002de                  _zmiana_przycisku
 
 Memory Configuration
 
@@ -201,26 +215,26 @@ __CONFIG1
 .comment
  *(.comment)
 
-.debug_info       0x000000        0x3e3
+.debug_info       0x000000        0x612
  *(.debug_info)
- .debug_info      0x000000        0x3e3 build/default/production/main.o
+ .debug_info      0x000000        0x612 build/default/production/main.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev     0x000000        0x103
+.debug_abbrev     0x000000        0x134
  *(.debug_abbrev)
- .debug_abbrev    0x000000        0x103 build/default/production/main.o
+ .debug_abbrev    0x000000        0x134 build/default/production/main.o
 
-.debug_line       0x000000        0x14e
+.debug_line       0x000000        0x1c9
  *(.debug_line)
- .debug_line      0x000000        0x14e build/default/production/main.o
+ .debug_line      0x000000        0x1c9 build/default/production/main.o
 
-.debug_frame      0x000000         0x7c
+.debug_frame      0x000000        0x132
  *(.debug_frame)
- .debug_frame     0x000000         0x7c build/default/production/main.o
+ .debug_frame     0x000000        0x132 build/default/production/main.o
 
-.debug_str        0x000000         0x21
+.debug_str        0x000000         0x45
  *(.debug_str)
- .debug_str       0x000000         0x21 build/default/production/main.o
+ .debug_str       0x000000         0x45 build/default/production/main.o
 
 .debug_loc
  *(.debug_loc)
@@ -229,10 +243,10 @@ __CONFIG1
  *(.debug_macinfo)
 
 .debug_pubnames
-                  0x000000         0x5d
+                  0x000000         0xb4
  *(.debug_pubnames)
  .debug_pubnames
-                  0x000000         0x5d build/default/production/main.o
+                  0x000000         0xb4 build/default/production/main.o
 
 .debug_ranges
  *(.debug_ranges)
@@ -853,16 +867,23 @@ __c30_signature
 .config_IESO      0x0157fc          0x2
  .config_IESO     0x0157fc          0x2 build/default/production/main.o
 
-.text             0x0002ce        0x108
- .text            0x0002ce        0x108 build/default/production/main.o
-                  0x0002ce                  _binUP
-                  0x000312                  _binDOWN
-                  0x000356                  _grayUP
-                  0x0003a6                  _main
+.text             0x0002ce        0x2e2
+ .text            0x0002ce        0x2e2 build/default/production/main.o
+                  0x0002ce                  _init
+                  0x0002de                  _zmiana_przycisku
+                  0x000326                  _binUP
+                  0x000352                  _binDOWN
+                  0x00037e                  _grayUP
+                  0x0003b6                  _grayDOWN
+                  0x0003ee                  _bcdUP
+                  0x000440                  _bcdDOWN
+                  0x00049e                  _snake
+                  0x000504                  _kolejka
+                  0x000550                  _main
 
-.init.delay32     0x0003d6         0x1c
- .init.delay32    0x0003d6         0x1c c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
-                  0x0003d6                  ___delay32
+.init.delay32     0x0005b0         0x1c
+ .init.delay32    0x0005b0         0x1c c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
+                  0x0005b0                  ___delay32
 
-.dinit            0x0003f2         0x10
- .dinit           0x0003f2         0x10 data_init
+.dinit            0x0005cc         0x10
+ .dinit           0x0005cc         0x10 data_init
