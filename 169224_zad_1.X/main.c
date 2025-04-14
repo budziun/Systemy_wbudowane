@@ -25,202 +25,258 @@
 #include <stdlib.h>
 #include "p24FJ128GA010.h"
 
-unsigned portValue = 0; 
-uint16_t numer_programu = 1; // zmienna do okreslania jaki program jest uruchomiony i do zmiany
-// Inicjalizacja portów
+volatile uint16_t numer_programu = 1;
+volatile uint8_t flaga = 0; // flaga informuj?ca o zmianie programu
+// funkcja delay
+void delay(uint32_t ilosc) {
+    uint32_t i, j;
+
+    for(i = 0; i < ilosc; i++) {
+        for(j = 0; j < 100; j++) {
+            asm("NOP");
+        }
+    }
+}
+// Inicjalizacja portów i przerwa?
 void init() {
     AD1PCFG = 0xFFFF;
-    TRISA = 0x0000;
-    TRISD = 0xFFFF; // Ustawienie portu D jako wej?cie
+    TRISA = 0x0000;  // Port A jako wyj?cie
+    TRISD = 0xFFFF;  // Port D jako wej?cie
+    
+    // Konfiguracja przerwa? od pinów
+    CNPU2bits.CN19PUE = 1;  // Pull-up dla RD13
+    CNPU1bits.CN15PUE = 1;  // Pull-up dla RD6 
+    
+    // W??czenie przerwa? Change Notification dla przycisków
+    CNEN1bits.CN15IE = 1;   // W??cz przerwanie dla RD6
+    CNEN2bits.CN19IE = 1;   // W??cz przerwanie dla RD13
+    
+    IFS1bits.CNIF = 0;      // Wyczy?? flag? przerwania CN
+    IEC1bits.CNIE = 1;      // W??cz przerwania CN
 }
 
-// Funkcja do sprawdzania przycisków 
-int zmiana_przycisku() {
-    if(PORTDbits.RD6 == 0) { 
-        __delay32(100000);
-        while(PORTDbits.RD6 == 0);  // Czekaj, a? przycisk zostanie puszczony
-        return -1; // numer programu -1
+// Procedura obs?ugi przerwania Change Notification
+void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
+    __delay32(200);
+    // Sprawdzenie, który przycisk zosta? naci?ni?ty
+    // poprzedni program
+    if(PORTDbits.RD13 == 0) {
+        numer_programu--;
+        flaga = 1;
     }
-    if(PORTDbits.RD7 == 0) {
-        __delay32(100000);
-        while(PORTDbits.RD7 == 0);  // Czekaj, a? przycisk zostanie puszczony
-        return 1; // numer programu +1
+    // nast?pny program
+    else if(PORTDbits.RD6 == 0) {
+        numer_programu++;
+        flaga = 1;
     }
-    return 0;
+    
+    while(PORTDbits.RD13 == 0 || PORTDbits.RD6 == 0);
+    // Wyczy?? flag?
+    IFS1bits.CNIF = 0;
 }
-
-// 8 bitowy licznik binarny zliczajacy w góre (0...255)
+//1. 8 bitowy licznik binarny zliczaj?cy w gór? (0...255)
 void binUP(){
     unsigned char licznik = 0;
-    while(1) {
+    flaga = 0;
+    while(!flaga) {
         LATA = licznik++;
-        __delay32(1000000);  // Zmienna opó?niaj?ca dla p?ynnego liczenia
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
+        delay(750);
     }
 }
-
-// 8 bitowy licznik zliczajacy w dó? (255...0)
+//2. 8 bitowy licznik zliczaj?cy w dó? (255...0)
 void binDOWN(){
     unsigned char licznik = 255;
-    while(1) {
+    flaga = 0;
+    while(!flaga) {
         LATA = licznik--;
-        __delay32(1000000);  // Zmienna opó?niaj?ca dla p?ynnego liczenia
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
+        delay(750);
     }
 }
-
-// 8 bitowy licznik w kodzie Graya zliczajacy w góre (repr. 0...255)
+//3. 8 bitowy licznik w kodzie Graya zliczaj?cy w gór? (repr. 0...255)
 void grayUP(){
     unsigned char licznik = 0;
     unsigned char grayCode;
-    while(1) {
+    flaga = 0;
+    
+    while(!flaga) {
         grayCode = (licznik >> 1) ^ licznik;
         LATA = grayCode;
         licznik++;
-        __delay32(1000000);  // Zmienna opó?niaj?ca dla p?ynnego liczenia
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
+        delay(750);
     }
 }
-// 8 bitowy licznik w kodzie Graya zliczaj?cy w dó? (repr. 255...0)
+//4. 8 bitowy licznik w kodzie Graya zliczaj?cy w dó? (repr. 255...0)
 void grayDOWN(){
     unsigned char licznik = 255;
     unsigned char grayCode;
-    while(1) {
+    flaga = 0;
+    
+    while(!flaga) {
         grayCode = (licznik >> 1) ^ licznik;
         LATA = grayCode;
         licznik--;
-        __delay32(1000000);  // Zmienna opó?niaj?ca dla p?ynnego liczenia
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
+        delay(750);
     }
 }
-// 2x4 bitowy licznik w kodzie BCD zliczaj?cy w gór? (0...99)
+//5. 2x4 bitowy licznik w kodzie BCD zliczaj?cy w gór? (0...99)
 void bcdUP(){
-    unsigned char dziesiatki = 0;  // Pierwsza cyfra (dziesi?tki)
-    unsigned char jednosci = 0;    // Druga cyfra (jednostki)
-    while(1){
-        LATA = (dziesiatki << 4) | jednosci;  // ??czenie obu cyfr w jedno s?owo
-        __delay32(1000000);
-         jednosci++;
+    unsigned char dziesiatki = 0;
+    unsigned char jednosci = 0;
+    flaga = 0;
+    
+    while(!flaga) {
+        LATA = (dziesiatki << 4) | jednosci;
+        delay(750);
+        
+        jednosci++;
         if (jednosci > 9) {
-            jednosci = 0;  
-            dziesiatki++; 
+            jednosci = 0;
+            dziesiatki++;
         }
-        // Gdy liczba osi?gnie 99, wró? do 00
+        
         if (dziesiatki > 9) {
             dziesiatki = 0;
         }
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
     }
 }
-// 2x4 bitowy licznik w kodzie BCD zliczaj?cy w dó? (99...0)
+//6. 2x4 bitowy licznik w kodzie BCD zliczaj?cy w dó? (99...0)
 void bcdDOWN() {
-    unsigned char dziesiatki = 9;  // Pierwsza cyfra (dziesi?tki) zaczyna si? od 9
-    unsigned char jednosci = 9;    // Druga cyfra (jednostki) zaczyna si? od 9
-
-    while(1) {
-        // Przesy?anie cyfr BCD do portów
-        LATA = (dziesiatki << 4) | jednosci;  // ??czenie obu cyfr w jedno s?owo
-        __delay32(1000000); 
-        // Zmniejsz jednostki
+    unsigned char dziesiatki = 9;
+    unsigned char jednosci = 9;
+    flaga = 0;
+    
+    while(!flaga) {
+        LATA = (dziesiatki << 4) | jednosci;
+        delay(750);
+        
         if (jednosci == 0) {
-            jednosci = 9;  // Reset jednostek
-            dziesiatki--;  // Zmniejsz dziesi?tki
+            jednosci = 9;
+            dziesiatki--;
         } else {
             jednosci--;
         }
-        // Gdy liczba osi?gnie 00, wró? do 99
+        
         if (dziesiatki == 0 && jednosci == 0) {
-            dziesiatki = 9;  // Restart na 99
+            dziesiatki = 9;
             jednosci = 9;
         }
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
     }
 }
-// 3 bitowy wezyk poruszajacy sie lewo-prawo
+//7. 3 bitowy w??yk poruszaj?cy si? lewo-prawo
 void snake() {
-    unsigned char wez = 0b00000111;  // Pocz?tkowy stan w??a
-    uint16_t kierunek = 1;  // Kierunek ruchu: 1 - w prawo, -1 - w lewo
-    while(1) {
-        LATA = wez;  // Wy?wietl aktualny stan w??a na porcie (np. LED)
-
-        __delay32(1000000);  // Zmienna opó?niaj?ca dla p?ynnego poruszania
-
+    unsigned char wez = 0b00000111;
+    uint16_t kierunek = 1;
+    flaga = 0;
+    
+    while(!flaga) {
+        LATA = wez;
+        delay(750);
+        
         if (kierunek == 1) {
-            wez <<= 1;  // Przesuni?cie w lewo
-            if (wez > 0b01111000) {  // Po przekroczeniu 7 bitów (11100000), wracamy do 11100000
-                wez = 0b11100000;  // Wracamy do stanu 11100000 (g?ówka na prawo)
-                kierunek = -1;  // Zmieniamy kierunek na lewo
+            wez <<= 1;
+            if (wez > 0b01111000) {
+                wez = 0b11100000;
+                kierunek = -1;
             }
         }
         else if (kierunek == -1) {
-            wez >>= 1;  // Przesuni?cie w prawo
-            if (wez < 0b00000111) {  // Po przekroczeniu 7 bitów (00000000), wracamy do 00000111
-                wez = 0b00000111;  // Wracamy do stanu 00000111 (g?ówka na lewo)
-                kierunek = 1;  // Zmieniamy kierunek na prawo
+            wez >>= 1;
+            if (wez < 0b00000111) {
+                wez = 0b00000111;
+                kierunek = 1;
             }
         }
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
     }
 }
-// Kolejka
-// do poprawnienia fajne ale nie dziala jak ma 
+//8. Kolejka
 void kolejka() {
-    unsigned char kolejka = 0b00000000;  // Pocz?tkowa pustka w kolejce
-    unsigned char nowy_bit = 1;          // Nowy bit, który b?dzie dodany do kolejki (np. 1 lub 0)
-    while(1) {
-        // Przesuni?cie bitów w lewo
-        kolejka <<= 1;
-
-        kolejka |= nowy_bit;  // Operacja OR ustawia najmniej znacz?cy bit na nowy bit
-        LATA = kolejka;
-        __delay32(1000000); 
-        // Zmieniamy bit dodawany do kolejki, mo?e to by? zmienna zmieniaj?ca si? w czasie
-        nowy_bit = (nowy_bit == 0) ? 1 : 0;  // Przyk?adowa zmiana bitu (np. naprzemiennie 0 i 1)
-        // Je?li kolejka jest pe?na (8 bitów), nadpisujemy najstarszy bit
-        if (kolejka == 0b11111111) {
-            kolejka = 0b00000000;  // Zresetuj kolejk? do stanu pocz?tkowego (pe?na kolejka nadpisana)
+    unsigned char kolejka = 0b00000000;
+    unsigned char wzor;
+    flaga = 0;
+    
+    while(!flaga) {
+        // Reset kolejki po zape?nieniu
+        kolejka = 0b00000000;
+        
+        for (uint16_t i = 0; i < 8 && !flaga; i++) {
+            wzor = 0b00000001;
+            for (uint16_t j = 0; j < 8 - i && !flaga; j++) {
+                LATA = kolejka | wzor;
+                delay(600);
+                // Sprawdzenie czy wyj?? z p?tli
+                if (flaga) {
+                    return;
+                }
+                // Przesuni?cie wzorku
+                if (j != 7 - i)
+                    wzor <<= 1;
+            }
+            // dodanie aktualnej diody do reszty kolejki
+            kolejka |= wzor;
         }
-        uint16_t button = zmiana_przycisku();
-        if(button) { numer_programu += button; break; }
+        
+        // Wszystkie diody si? ?wiec? - wy?wietl przez chwil?
+        LATA = 0b11111111;
+        delay(1000); 
+        if (flaga) {
+            return;
+        }
+
     }
 }
-
-// 6 bitowy generator liczb pseudolosowych oparty o konfiguracj? 11100111
-
-// G?ówna funkcja programu
+//9. 6 bitowy generator liczb pseudolosowych oparty o konfiguracj? 11100111
+void losowe() {
+    unsigned char lfsr = 0x21;
+    unsigned char bit;
+    flaga = 0;
+    
+    while(!flaga) {
+        LATA = lfsr & 0x3F;
+        delay(600);
+        
+        bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
+        lfsr = (lfsr >> 1) | (bit << 5);
+    }
+}
+// G?ówna funkcja programu z wyborem programu
 int main(void) {
     init();
+    
     while(1) {
-        if(numer_programu < 1 || numer_programu > 7){
+        if(numer_programu < 1) {
+            numer_programu = 9;
+        } else if(numer_programu > 9) {
             numer_programu = 1;
         }
-        else if(numer_programu == 1){
-            binUP();
-        }
-        else if(numer_programu == 2){
-            binDOWN();
-        }
-        else if(numer_programu == 3){
-            grayUP();
-        }
-        else if(numer_programu == 4){
-            grayDOWN();
-        }
-        else if(numer_programu == 5){
-            bcdUP();
-        }
-        else if(numer_programu == 6){
-            bcdDOWN();
-        }
-        else if(numer_programu == 7){
-            snake();
+        switch(numer_programu) {
+            case 1:
+                binUP();
+                break;
+            case 2:
+                binDOWN();
+                break;
+            case 3:
+                grayUP();
+                break;
+            case 4:
+                grayDOWN();
+                break;
+            case 5:
+                bcdUP();
+                break;
+            case 6:
+                bcdDOWN();
+                break;
+            case 7:
+                snake();
+                break;
+            case 8:
+                kolejka();
+                break;
+            case 9:
+                losowe();
+                break;
         }
     }
+    return 0;
 }
