@@ -55,7 +55,7 @@ void init() {
     IEC1bits.CNIE = 1;      // Wlacz przerwania CN
 }
 
-// Procedura obslugi przerwania
+// Procedura obslugi przerwania przyciskami 
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     __delay32(200);
     // Sprawdzenie, który przycisk zostal nacisniety
@@ -226,16 +226,17 @@ void kolejka() {
 }
 //9. 6 bitowy generator liczb pseudolosowych oparty o konfiguracje 11100111
 void losowe() {
-    unsigned char lfsr = 0x21;
-    unsigned char bit;
+    unsigned char lcg = 0x21;  // warto?? pocz?tkowa
+    const unsigned char a = 17;  // mno?nik
+    const unsigned char c = 43;  // sta?a dodawana
     flaga = 0;
-    
-    while(!flaga) {
-        LATA = lfsr & 0x3F;
-        delay(600);
+
+    while (!flaga) {
+        LATA = lcg;             // wyj?cie na port
+        delay(1000);
+        //LCG z maskowaniem 6-bitowym
+        lcg = (a * lcg + c) & 0x3F;  // 0x3F -> maska 0b00111111
         
-        bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
-        lfsr = (lfsr >> 1) | (bit << 5);
     }
 }
 // Glówna funkcja programu z wyborem programu

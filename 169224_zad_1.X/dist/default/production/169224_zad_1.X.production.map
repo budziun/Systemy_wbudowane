@@ -67,11 +67,11 @@ Default Scalar Model: Small
 section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
 .text                        0x200               0x132           0x1cb  (459)
-.text                        0x332               0x346           0x4e9  (1257)
-.init.delay32                0x678                0x1c            0x2a  (42)
-.dinit                       0x694                0x10            0x18  (24)
+.text                        0x332               0x32a           0x4bf  (1215)
+.init.delay32                0x65c                0x1c            0x2a  (42)
+.dinit                       0x678                0x10            0x18  (24)
 
-                 Total "program" memory used (bytes):          0x6f6  (1782) 1%
+                 Total "program" memory used (bytes):          0x6cc  (1740) 1%
 
 
 "data" Memory  [Origin = 0x800, Length = 0x2000]
@@ -125,14 +125,14 @@ External Symbols in Program Memory (by address):
                   0x0004c6                  _snake
                   0x000520                  _kolejka
                   0x0005b0                  _losowe
-                  0x000604                  _main
-                  0x000678                  ___delay32
+                  0x0005e8                  _main
+                  0x00065c                  ___delay32
 
 External Symbols in Program Memory (by name):
 
                   0x0002c8                  __CNInterrupt
                   0x00032c                  __DefaultInterrupt
-                  0x000678                  ___delay32
+                  0x00065c                  ___delay32
                   0x000252                  __data_init
                   0x000252                  __data_init_standard
                   0x00023c                  __psv_init
@@ -147,7 +147,7 @@ External Symbols in Program Memory (by name):
                   0x00037a                  _init
                   0x000520                  _kolejka
                   0x0005b0                  _losowe
-                  0x000604                  _main
+                  0x0005e8                  _main
                   0x0004c6                  _snake
 
 Memory Configuration
@@ -221,14 +221,14 @@ __CONFIG1
 .comment
  *(.comment)
 
-.debug_info       0x000000        0xd17
+.debug_info       0x000000        0xd25
  *(.debug_info)
- .debug_info      0x000000        0xd17 build/default/production/main.o
+ .debug_info      0x000000        0xd25 build/default/production/main.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev     0x000000        0x18f
+.debug_abbrev     0x000000        0x196
  *(.debug_abbrev)
- .debug_abbrev    0x000000        0x18f build/default/production/main.o
+ .debug_abbrev    0x000000        0x196 build/default/production/main.o
 
 .debug_line       0x000000        0x1fa
  *(.debug_line)
@@ -878,8 +878,8 @@ __c30_signature
  .ivt._CNInterrupt
                   0x00003a          0x2 build/default/production/main.o
 
-.text             0x000332        0x346
- .text            0x000332        0x346 build/default/production/main.o
+.text             0x000332        0x32a
+ .text            0x000332        0x32a build/default/production/main.o
                   0x000332                  _delay
                   0x00037a                  _init
                   0x000396                  _binUP
@@ -891,11 +891,11 @@ __c30_signature
                   0x0004c6                  _snake
                   0x000520                  _kolejka
                   0x0005b0                  _losowe
-                  0x000604                  _main
+                  0x0005e8                  _main
 
-.init.delay32     0x000678         0x1c
- .init.delay32    0x000678         0x1c c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
-                  0x000678                  ___delay32
+.init.delay32     0x00065c         0x1c
+ .init.delay32    0x00065c         0x1c c:/program files/microchip/xc16/v2.10/bin/bin/../../lib\libc99-pic30-elf.a(delay32.Meo)
+                  0x00065c                  ___delay32
 
-.dinit            0x000694         0x10
- .dinit           0x000694         0x10 data_init
+.dinit            0x000678         0x10
+ .dinit           0x000678         0x10 data_init
