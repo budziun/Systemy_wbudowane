@@ -26,8 +26,8 @@
 #include "p24FJ128GA010.h"
 
 volatile uint16_t numer_programu = 1;
-volatile uint8_t flaga = 0; // flaga informuj?ca o zmianie programu
-// funkcja delay
+volatile uint8_t flaga = 0; // flaga informujaca o zmianie programu
+// funkcja opoznienie
 void delay(uint32_t ilosc) {
     uint32_t i, j;
 
@@ -37,44 +37,44 @@ void delay(uint32_t ilosc) {
         }
     }
 }
-// Inicjalizacja portów i przerwa?
+// Inicjalizacja portów i przerwan
 void init() {
     AD1PCFG = 0xFFFF;
-    TRISA = 0x0000;  // Port A jako wyj?cie
-    TRISD = 0xFFFF;  // Port D jako wej?cie
+    TRISA = 0x0000;  // Port A jako wyjscie
+    TRISD = 0xFFFF;  // Port D jako wejscie
     
-    // Konfiguracja przerwa? od pinów
+    // Konfiguracja przerwan od pinów
     CNPU2bits.CN19PUE = 1;  // Pull-up dla RD13
     CNPU1bits.CN15PUE = 1;  // Pull-up dla RD6 
     
-    // W??czenie przerwa? Change Notification dla przycisków
-    CNEN1bits.CN15IE = 1;   // W??cz przerwanie dla RD6
-    CNEN2bits.CN19IE = 1;   // W??cz przerwanie dla RD13
+    // Wlaczenie przerwan Change Notification dla przycisków
+    CNEN1bits.CN15IE = 1;   // Wlacz przerwanie dla RD6
+    CNEN2bits.CN19IE = 1;   // Wlacz przerwanie dla RD13
     
-    IFS1bits.CNIF = 0;      // Wyczy?? flag? przerwania CN
-    IEC1bits.CNIE = 1;      // W??cz przerwania CN
+    IFS1bits.CNIF = 0;      // Wyczysc flage przerwania CN
+    IEC1bits.CNIE = 1;      // Wlacz przerwania CN
 }
 
-// Procedura obs?ugi przerwania Change Notification
+// Procedura obslugi przerwania
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     __delay32(200);
-    // Sprawdzenie, który przycisk zosta? naci?ni?ty
+    // Sprawdzenie, który przycisk zostal nacisniety
     // poprzedni program
     if(PORTDbits.RD13 == 0) {
         numer_programu--;
         flaga = 1;
     }
-    // nast?pny program
+    // nastepny program
     else if(PORTDbits.RD6 == 0) {
         numer_programu++;
         flaga = 1;
     }
     
     while(PORTDbits.RD13 == 0 || PORTDbits.RD6 == 0);
-    // Wyczy?? flag?
+    // Wyczysc flage
     IFS1bits.CNIF = 0;
 }
-//1. 8 bitowy licznik binarny zliczaj?cy w gór? (0...255)
+//1. 8 bitowy licznik binarny zliczajacy w góre (0...255)
 void binUP(){
     unsigned char licznik = 0;
     flaga = 0;
@@ -83,7 +83,7 @@ void binUP(){
         delay(750);
     }
 }
-//2. 8 bitowy licznik zliczaj?cy w dó? (255...0)
+//2. 8 bitowy licznik zliczajacy w dól (255...0)
 void binDOWN(){
     unsigned char licznik = 255;
     flaga = 0;
@@ -92,7 +92,7 @@ void binDOWN(){
         delay(750);
     }
 }
-//3. 8 bitowy licznik w kodzie Graya zliczaj?cy w gór? (repr. 0...255)
+//3. 8 bitowy licznik w kodzie Graya zliczajacy w góre (repr. 0...255)
 void grayUP(){
     unsigned char licznik = 0;
     unsigned char grayCode;
@@ -105,7 +105,7 @@ void grayUP(){
         delay(750);
     }
 }
-//4. 8 bitowy licznik w kodzie Graya zliczaj?cy w dó? (repr. 255...0)
+//4. 8 bitowy licznik w kodzie Graya zliczajacy w dól (repr. 255...0)
 void grayDOWN(){
     unsigned char licznik = 255;
     unsigned char grayCode;
@@ -118,7 +118,7 @@ void grayDOWN(){
         delay(750);
     }
 }
-//5. 2x4 bitowy licznik w kodzie BCD zliczaj?cy w gór? (0...99)
+//5. 2x4 bitowy licznik w kodzie BCD zliczajacy w góre (0...99)
 void bcdUP(){
     unsigned char dziesiatki = 0;
     unsigned char jednosci = 0;
@@ -139,7 +139,7 @@ void bcdUP(){
         }
     }
 }
-//6. 2x4 bitowy licznik w kodzie BCD zliczaj?cy w dó? (99...0)
+//6. 2x4 bitowy licznik w kodzie BCD zliczajacy w dól (99...0)
 void bcdDOWN() {
     unsigned char dziesiatki = 9;
     unsigned char jednosci = 9;
@@ -162,7 +162,7 @@ void bcdDOWN() {
         }
     }
 }
-//7. 3 bitowy w??yk poruszaj?cy si? lewo-prawo
+//7. 3 bitowy wezyk poruszajacy sie lewo-prawo
 void snake() {
     unsigned char wez = 0b00000111;
     uint16_t kierunek = 1;
@@ -195,7 +195,7 @@ void kolejka() {
     flaga = 0;
     
     while(!flaga) {
-        // Reset kolejki po zape?nieniu
+        // Reset kolejki po zapelnieniu
         kolejka = 0b00000000;
         
         for (uint16_t i = 0; i < 8 && !flaga; i++) {
@@ -203,11 +203,11 @@ void kolejka() {
             for (uint16_t j = 0; j < 8 - i && !flaga; j++) {
                 LATA = kolejka | wzor;
                 delay(600);
-                // Sprawdzenie czy wyj?? z p?tli
+                // Sprawdzenie czy wyjsc z petli
                 if (flaga) {
                     return;
                 }
-                // Przesuni?cie wzorku
+                // Przesuniecie wzorku
                 if (j != 7 - i)
                     wzor <<= 1;
             }
@@ -215,7 +215,7 @@ void kolejka() {
             kolejka |= wzor;
         }
         
-        // Wszystkie diody si? ?wiec? - wy?wietl przez chwil?
+        // Wszystkie diody sie swieca - wyswietl przez chwile
         LATA = 0b11111111;
         delay(1000); 
         if (flaga) {
@@ -224,7 +224,7 @@ void kolejka() {
 
     }
 }
-//9. 6 bitowy generator liczb pseudolosowych oparty o konfiguracj? 11100111
+//9. 6 bitowy generator liczb pseudolosowych oparty o konfiguracje 11100111
 void losowe() {
     unsigned char lfsr = 0x21;
     unsigned char bit;
@@ -238,7 +238,7 @@ void losowe() {
         lfsr = (lfsr >> 1) | (bit << 5);
     }
 }
-// G?ówna funkcja programu z wyborem programu
+// Glówna funkcja programu z wyborem programu
 int main(void) {
     init();
     
