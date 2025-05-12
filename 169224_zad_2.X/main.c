@@ -2,7 +2,7 @@
  * File:   main.c
  * Author: Jakub Budzich - 169224
  *
- * Created on 24 marca 2025, 08:46
+ * Created on 12 maj 2025, 08:17
  * Modified for potentiometer control
  */
 #pragma config POSCMOD = NONE      // Primary Oscillator Select
