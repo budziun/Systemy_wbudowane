@@ -37,17 +37,17 @@ void delay(uint32_t ilosc) {
         }
     }
 }
-// Inicjalizacja portów i przerwan
+// Inicjalizacja portï¿½w i przerwan
 void init() {
     AD1PCFG = 0xFFFF;
     TRISA = 0x0000;  // Port A jako wyjscie
     TRISD = 0xFFFF;  // Port D jako wejscie
     
-    // Konfiguracja przerwan od pinów
+    // Konfiguracja przerwan od pinï¿½w
     CNPU2bits.CN19PUE = 1;  // Pull-up dla RD13
     CNPU1bits.CN15PUE = 1;  // Pull-up dla RD6 
     
-    // Wlaczenie przerwan Change Notification dla przycisków
+    // Wlaczenie przerwan Change Notification dla przyciskï¿½w
     CNEN1bits.CN15IE = 1;   // Wlacz przerwanie dla RD6
     CNEN2bits.CN19IE = 1;   // Wlacz przerwanie dla RD13
     
@@ -58,7 +58,7 @@ void init() {
 // Procedura obslugi przerwania przyciskami 
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     __delay32(200);
-    // Sprawdzenie, który przycisk zostal nacisniety
+    // Sprawdzenie, ktï¿½ry przycisk zostal nacisniety
     // poprzedni program
     if(PORTDbits.RD13 == 0) {
         numer_programu--;
@@ -74,7 +74,7 @@ void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     // Wyczysc flage
     IFS1bits.CNIF = 0;
 }
-//1. 8 bitowy licznik binarny zliczajacy w góre (0...255)
+//1. 8 bitowy licznik binarny zliczajacy w gï¿½re (0...255)
 void binUP(){
     unsigned char licznik = 0;
     flaga = 0;
@@ -83,7 +83,7 @@ void binUP(){
         delay(750);
     }
 }
-//2. 8 bitowy licznik zliczajacy w dól (255...0)
+//2. 8 bitowy licznik zliczajacy w dï¿½l (255...0)
 void binDOWN(){
     unsigned char licznik = 255;
     flaga = 0;
@@ -92,7 +92,7 @@ void binDOWN(){
         delay(750);
     }
 }
-//3. 8 bitowy licznik w kodzie Graya zliczajacy w góre (repr. 0...255)
+//3. 8 bitowy licznik w kodzie Graya zliczajacy w gï¿½re (repr. 0...255)
 void grayUP(){
     unsigned char licznik = 0;
     unsigned char grayCode;
@@ -105,7 +105,7 @@ void grayUP(){
         delay(750);
     }
 }
-//4. 8 bitowy licznik w kodzie Graya zliczajacy w dól (repr. 255...0)
+//4. 8 bitowy licznik w kodzie Graya zliczajacy w dï¿½l (repr. 255...0)
 void grayDOWN(){
     unsigned char licznik = 255;
     unsigned char grayCode;
@@ -118,7 +118,7 @@ void grayDOWN(){
         delay(750);
     }
 }
-//5. 2x4 bitowy licznik w kodzie BCD zliczajacy w góre (0...99)
+//5. 2x4 bitowy licznik w kodzie BCD zliczajacy w gï¿½re (0...99)
 void bcdUP(){
     unsigned char dziesiatki = 0;
     unsigned char jednosci = 0;
@@ -139,7 +139,7 @@ void bcdUP(){
         }
     }
 }
-//6. 2x4 bitowy licznik w kodzie BCD zliczajacy w dól (99...0)
+//6. 2x4 bitowy licznik w kodzie BCD zliczajacy w dï¿½l (99...0)
 void bcdDOWN() {
     unsigned char dziesiatki = 9;
     unsigned char jednosci = 9;
@@ -226,20 +226,20 @@ void kolejka() {
 }
 //9. 6 bitowy generator liczb pseudolosowych oparty o konfiguracje 11100111
 void losowe() {
-    unsigned char lcg = 0x21;  // warto?? pocz?tkowa
-    const unsigned char a = 17;  // mno?nik
-    const unsigned char c = 43;  // sta?a dodawana
+    unsigned char lcg = 0b11100111;  // wartosc poczatkowa
+    const unsigned char a = 17;  // mnoznik
+    const unsigned char c = 43;  // stala dodawana
     flaga = 0;
 
     while (!flaga) {
-        LATA = lcg;             // wyj?cie na port
+        LATA = lcg & 0x3F;            // wyj?cie na port i uciecie dwoch najstarszych bitow
         delay(1000);
         //LCG z maskowaniem 6-bitowym
         lcg = (a * lcg + c) & 0x3F;  // 0x3F -> maska 0b00111111
         
     }
 }
-// Glówna funkcja programu z wyborem programu
+// Glï¿½wna funkcja programu z wyborem programu
 int main(void) {
     init();
     
