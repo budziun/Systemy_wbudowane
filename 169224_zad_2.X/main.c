@@ -30,13 +30,13 @@ volatile uint16_t numer_programu = 1;
 volatile uint8_t flaga = 0; // flaga informuj?ca o zmianie programu
 volatile uint16_t predkosc = 0; // warto?? potencjometru
 
-// Funkcja opó?nienie z regulacj? pr?dko?ci
+// Funkcja opï¿½?nienie z regulacj? pr?dko?ci
 void delay(uint32_t podstawa) {
     uint32_t ilosc, i, j;
     
-    // Przeliczenie opó?nienia na podstawie odczytu z potencjometru
+    // Przeliczenie opï¿½?nienia na podstawie odczytu z potencjometru
     // predkosc b?dzie w zakresie 0-1023 (10-bitowy ADC)
-    // Dzielimy na 5 poziomów pr?dko?ci
+    // Dzielimy na 5 poziomï¿½w pr?dko?ci
     if (predkosc < 205)         ilosc = podstawa * 5;  // bardzo wolno
     else if (predkosc < 410)    ilosc = podstawa * 4;  // wolno
     else if (predkosc < 615)    ilosc = podstawa * 3;  // ?rednio
@@ -56,31 +56,31 @@ void initADC() {
     AD1PCFGbits.PCFG5 = 0;    // AN5 jako wej?cie analogowe
     AD1CON1 = 0x00E0;         // SSRC = 111 zako?cz konwersj? na samym ko?cu
     AD1CON2 = 0;
-    AD1CON3 = 0x1F3F;         // Czas próbkowania = 31Tad, Tad = 64Tcy
-    AD1CHS = 5;               // Wybór kana?u AN5 (potencjometr)
+    AD1CON3 = 0x1F3F;         // Czas prï¿½bkowania = 31Tad, Tad = 64Tcy
+    AD1CHS = 5;               // Wybï¿½r kana?u AN5 (potencjometr)
     AD1CON1bits.ADON = 1;     // W??cz modu? ADC
 }
 
 // Funkcja do odczytu warto?ci potencjometru
 uint16_t czytajPotencjometr() {
-    AD1CON1bits.SAMP = 1;     // Rozpocznij próbkowanie
-    __delay32(100);           // Daj czas na próbkowanie
+    AD1CON1bits.SAMP = 1;     // Rozpocznij prï¿½bkowanie
+    __delay32(100);           // Daj czas na prï¿½bkowanie
     AD1CON1bits.SAMP = 0;     // Rozpocznij konwersj?
     while (!AD1CON1bits.DONE); // Czekaj na zako?czenie konwersji
-    return ADC1BUF0;          // Zwró? wynik
+    return ADC1BUF0;          // Zwrï¿½? wynik
 }
 
-// Inicjalizacja portów i przerwa?
+// Inicjalizacja portï¿½w i przerwa?
 void init() {
-    AD1PCFG = 0xFFDF;         // Wszystkie piny cyfrowe oprócz AN5
+    AD1PCFG = 0xFFDF;         // Wszystkie piny cyfrowe oprï¿½cz AN5
     TRISA = 0x0000;           // Port A jako wyj?cie
     TRISD = 0xFFFF;           // Port D jako wej?cie
     
-    // Konfiguracja przerwa? od pinów
+    // Konfiguracja przerwa? od pinï¿½w
     CNPU2bits.CN19PUE = 1;    // Pull-up dla RD13
     CNPU1bits.CN15PUE = 1;    // Pull-up dla RD6 
     
-    // W??czenie przerwa? Change Notification dla przycisków
+    // W??czenie przerwa? Change Notification dla przyciskï¿½w
     CNEN1bits.CN15IE = 1;     // W??cz przerwanie dla RD6
     CNEN2bits.CN19IE = 1;     // W??cz przerwanie dla RD13
     
@@ -94,7 +94,7 @@ void init() {
 // Procedura obs?ugi przerwania przyciskami 
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     __delay32(200);
-    // Sprawdzenie, który przycisk zosta? naci?ni?ty
+    // Sprawdzenie, ktï¿½ry przycisk zosta? naci?ni?ty
     // poprzedni program
     if(PORTDbits.RD13 == 0) {
         numer_programu--;
@@ -122,7 +122,7 @@ void snake() {
         predkosc = czytajPotencjometr();
         
         LATA = wez;
-        delay(150); // Podstawowe opó?nienie, modyfikowane przez funkcj? delay
+        delay(150); // Podstawowe opï¿½?nienie, modyfikowane przez funkcj? delay
         
         if (kierunek == 1) {
             wez <<= 1;
@@ -134,14 +134,14 @@ void snake() {
         else if (kierunek == -1) {
             wez >>= 1;
             if (wez < 0b00000111) {
-                wez = 0b00000111;
+                wez = 0b00000111 << 1;
                 kierunek = 1;
             }
         }
     }
 }
 
-// Program 2: licznik wartosci binarnych w dó?
+// Program 2: licznik wartosci binarnych w dï¿½?
 void binDown(){
     unsigned char licznik = 255;
     flaga = 0;
@@ -153,7 +153,7 @@ void binDown(){
         delay(150);
     }
 }
-// G?ówna funkcja programu z wyborem programu
+// G?ï¿½wna funkcja programu z wyborem programu
 int main(void) {
     init();
     
