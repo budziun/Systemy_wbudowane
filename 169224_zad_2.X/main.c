@@ -27,21 +27,22 @@
 #include "p24FJ128GA010.h"
 
 volatile uint16_t numer_programu = 1;
-volatile uint8_t flaga = 0; // flaga informuj?ca o zmianie programu
-volatile uint16_t predkosc = 0; // warto?? potencjometru
+volatile uint8_t flaga = 0; // flaga informujaca o zmianie programu
+volatile uint16_t predkosc = 0; // wartosc potencjometru
 
-// Funkcja op�?nienie z regulacj? pr?dko?ci
+// Funkcja opoznienie z regulacja predkosci
 void delay(uint32_t podstawa) {
     uint32_t ilosc, i, j;
     
-    // Przeliczenie op�?nienia na podstawie odczytu z potencjometru
-    // predkosc b?dzie w zakresie 0-1023 (10-bitowy ADC)
-    // Dzielimy na 5 poziom�w pr?dko?ci
-    if (predkosc < 205)         ilosc = podstawa * 5;  // bardzo wolno
+    // Przeliczenie opoznienia na podstawie odczytu z potencjometru
+    // predkosc bedzie w zakresie 0-1023 (10-bitowy ADC)
+    // i dzielmy na 5 rozncyh poziomow predkosci
+    // 5 roznych predkosci bez zachowanego porządku aby było widoczne że istnieje 5 róźnych stanów
+    if (predkosc < 205)         ilosc = podstawa /2;  // szybko
     else if (predkosc < 410)    ilosc = podstawa * 4;  // wolno
-    else if (predkosc < 615)    ilosc = podstawa * 3;  // ?rednio
-    else if (predkosc < 820)    ilosc = podstawa * 2;  // szybko
-    else                        ilosc = podstawa;      // bardzo szybko
+    else if (predkosc < 615)    ilosc = podstawa /4;  // jeszcze szybciej niz przy 205 wartosci
+    else if (predkosc < 820)    ilosc = podstawa * 12;  // najwolniej 
+    else                        ilosc = podstawa /8;  // najszybiciej
 
     for(i = 0; i < ilosc; i++) {
         for(j = 0; j < 100; j++) {
@@ -53,76 +54,76 @@ void delay(uint32_t podstawa) {
 // Inicjalizacja ADC do odczytu potencjometru
 void initADC() {
     // Konfiguracja portu analogowego
-    AD1PCFGbits.PCFG5 = 0;    // AN5 jako wej?cie analogowe
-    AD1CON1 = 0x00E0;         // SSRC = 111 zako?cz konwersj? na samym ko?cu
+    AD1PCFGbits.PCFG5 = 0;    // AN5 jako wejscie analogowe
+    AD1CON1 = 0x00E0;         // SSRC = 111 zakoncz konwersje na samym koncu
     AD1CON2 = 0;
-    AD1CON3 = 0x1F3F;         // Czas pr�bkowania = 31Tad, Tad = 64Tcy
-    AD1CHS = 5;               // Wyb�r kana?u AN5 (potencjometr)
-    AD1CON1bits.ADON = 1;     // W??cz modu? ADC
+    AD1CON3 = 0x1F3F;         // Czas probkowania = 31Tad, Tad = 64Tcy
+    AD1CHS = 5;               // Wybor kanalu AN5 (potencjometr)
+    AD1CON1bits.ADON = 1;     // Wlacz modul ADC
 }
 
-// Funkcja do odczytu warto?ci potencjometru
+// Funkcja do odczytu wartosci potencjometru
 uint16_t czytajPotencjometr() {
-    AD1CON1bits.SAMP = 1;     // Rozpocznij pr�bkowanie
-    __delay32(100);           // Daj czas na pr�bkowanie
-    AD1CON1bits.SAMP = 0;     // Rozpocznij konwersj?
-    while (!AD1CON1bits.DONE); // Czekaj na zako?czenie konwersji
-    return ADC1BUF0;          // Zwr�? wynik
+    AD1CON1bits.SAMP = 1;     // Rozpocznij probkowanie
+    __delay32(100);           // Daj czas na probkowanie
+    AD1CON1bits.SAMP = 0;     // Rozpocznij konwersje
+    while (!AD1CON1bits.DONE); // Czekaj na zakonczenie konwersji
+    return ADC1BUF0;          // Zwroc wynik
 }
 
-// Inicjalizacja port�w i przerwa?
+// Inicjalizacja portow i przerwan
 void init() {
-    AD1PCFG = 0xFFDF;         // Wszystkie piny cyfrowe opr�cz AN5
+    AD1PCFG = 0xFFDF;         // Wszystkie piny cyfrowe oprocz AN5
     TRISA = 0x0000;           // Port A jako wyj?cie
     TRISD = 0xFFFF;           // Port D jako wej?cie
     
-    // Konfiguracja przerwa? od pin�w
+    // Konfiguracja przerwan od pinow
     CNPU2bits.CN19PUE = 1;    // Pull-up dla RD13
     CNPU1bits.CN15PUE = 1;    // Pull-up dla RD6 
     
-    // W??czenie przerwa? Change Notification dla przycisk�w
-    CNEN1bits.CN15IE = 1;     // W??cz przerwanie dla RD6
-    CNEN2bits.CN19IE = 1;     // W??cz przerwanie dla RD13
+    // Wlaczenie przerwan dla przyciskow
+    CNEN1bits.CN15IE = 1;     // Wlacz przerwanie dla RD6
+    CNEN2bits.CN19IE = 1;     // Wlacz przerwanie dla RD13
     
-    IFS1bits.CNIF = 0;        // Wyczy?? flag? przerwania CN
-    IEC1bits.CNIE = 1;        // W??cz przerwania CN
+    IFS1bits.CNIF = 0;        // Wyczysc flage przerwania CN
+    IEC1bits.CNIE = 1;        // Wlacz przerwania CN
     
     // Inicjalizacja ADC
     initADC();
 }
 
-// Procedura obs?ugi przerwania przyciskami 
+// Procedura obslugi przerwania przyciskami 
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
     __delay32(200);
-    // Sprawdzenie, kt�ry przycisk zosta? naci?ni?ty
+    // Sprawdzenie, ktory przycisk zostal nacisniety
     // poprzedni program
     if(PORTDbits.RD13 == 0) {
         numer_programu--;
         flaga = 1;
     }
-    // nast?pny program
+    // nastepny program
     else if(PORTDbits.RD6 == 0) {
         numer_programu++;
         flaga = 1;
     }
     
     while(PORTDbits.RD13 == 0 || PORTDbits.RD6 == 0);
-    // Wyczy?? flag?
+    // Wyczysczenie flagi
     IFS1bits.CNIF = 0;
 }
 
-// Program 1: W??yk poruszaj?cy si? lewo-prawo (wybrany jako pierwszy program, inny ni? liczniki)
+// 1. Snake wezyk od prawej do lewej
 void snake() {
     unsigned char wez = 0b00000111;
     uint16_t kierunek = 1;
     flaga = 0;
     
     while(!flaga) {
-        // Odczyt potencjometru przed ka?d? iteracj?
+        // Odczyt potencjometru przed kazda iteracja
         predkosc = czytajPotencjometr();
         
         LATA = wez;
-        delay(150); // Podstawowe op�?nienie, modyfikowane przez funkcj? delay
+        delay(150); //delay okreslany wartoscia z potencjometru 
         
         if (kierunek == 1) {
             wez <<= 1;
@@ -141,19 +142,19 @@ void snake() {
     }
 }
 
-// Program 2: licznik wartosci binarnych w d�?
+// 2. licznik wartosci binarnych w dol
 void binDown(){
     unsigned char licznik = 255;
     flaga = 0;
     while(!flaga) {
-        // program odczytuje przed ka?d? iteracj? warto?? potencjometru
+        // program odczytuje przed kazda iteracja wartosc z potencjometru
         predkosc = czytajPotencjometr();
         
         LATA = licznik--;
-        delay(150);
+        delay(150); //delay okreslany wartoscia z potencjometru 
     }
 }
-// G?�wna funkcja programu z wyborem programu
+// Glowna funkcja programu z wyborem programu
 int main(void) {
     init();
     
