@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project>
+  <executable name="dist/default/production/169224_zad_3.X.production.elf">
+    <memory name="data">
+      <units>bytes</units>
+      <length>8192</length>
+      <used>16</used>
+      <free>8176</free>
+    </memory>
+    <memory name="program">
+      <units>bytes</units>
+      <length>131322</length>
+      <used>975</used>
+      <free>130347</free>
+    </memory>
+  </executable>
+</project>
