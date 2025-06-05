@@ -2,275 +2,237 @@
  * File:   main.c
  * Author: Jakub Budzich - ISI1
  *
- * Created on May 19, 2025, 9:23 AM
+ * Created on May 19, 2025, 9:14
  */
 
-// Konfiguracja
-#pragma config POSCMOD = NONE      // Primary Oscillator Select
-#pragma config OSCIOFNC = ON       // Primary Oscillator Output Function
-#pragma config FCKSM = CSDCMD      // Clock Switching and Monitor
-#pragma config FNOSC = FRC         // Oscillator Select
-#pragma config IESO = OFF          // Internal External Switch Over Mode
-#pragma config WDTPS = PS32768     // Watchdog Timer Postscaler
-#pragma config FWPSA = PR128       // WDT Prescaler
-#pragma config WINDIS = ON         // Watchdog Timer Window
-#pragma config FWDTEN = OFF        // Watchdog Timer Enable
-#pragma config ICS = PGx2          // Comm Channel Select
-#pragma config GWRP = OFF          // General Code Segment Write Protect
-#pragma config GCP = OFF           // General Code Segment Code Protect
-#pragma config JTAGEN = OFF        // JTAG Port Enable
-
-#define XTAL_FREQ 8000000
-#define FCY 4000000  // Częstotliwość zegara instrukcji (FCY = FOSC/2)
+#pragma config POSCMOD = NONE
+#pragma config OSCIOFNC = ON
+#pragma config FCKSM = CSDCMD
+#pragma config FNOSC = FRC
+#pragma config IESO = OFF
+#pragma config WDTPS = PS32768
+#pragma config FWPSA = PR128
+#pragma config WINDIS = ON
+#pragma config FWDTEN = OFF
+#pragma config ICS = PGx2
+#pragma config GWRP = OFF
+#pragma config GCP = OFF
+#pragma config JTAGEN = OFF
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <xc.h>
-#include <libpic30.h>  // Dla funkcji __delay_ms
+#include <libpic30.h>
 #include "p24FJ128GA010.h"
 #include "lcd.h"
 
-// Definicje dla LCD, które mogą nie być widoczne
-#define LCD_COMMAND_CLEAR_SCREEN        0x01
-#define LCD_COMMAND_RETURN_HOME         0x02
-#define LCD_COMMAND_ENTER_DATA_MODE     0x06
-#define LCD_COMMAND_CURSOR_OFF          0x0C
-#define LCD_COMMAND_CURSOR_ON           0x0F
-#define LCD_COMMAND_MOVE_CURSOR_LEFT    0x10
-#define LCD_COMMAND_MOVE_CURSOR_RIGHT   0x14
-#define LCD_COMMAND_SET_MODE_4_BIT      0x28
-#define LCD_COMMAND_SET_MODE_8_BIT      0x38
-#define LCD_COMMAND_ROW_0_HOME          0x80
-#define LCD_COMMAND_ROW_1_HOME          0xC0
-#define LCD_F_INSTR                     (((SYSTEM_PERIPHERAL_CLOCK/1000)*40)/1000)/12
+// Deklaracja zegara systemowego
+#define XTAL_FREQ 8000000
+#define FCY 4000000
 
-// Definicje pinów
-#define BTN_ADD_1MIN PORTDbits.RD6
-#define BTN_ADD_10SEC PORTDbits.RD7
-#define BTN_START_STOP PORTAbits.RA7
-#define BTN_RESET PORTDbits.RD13
+// Zmienne globalne - volatile bo u?ywane w przerwaniach
+volatile uint16_t czas_sekundy = 0;           // ile sekund zostalo
+volatile uint8_t stan = 0;                    // 0=stop, 1=dziala, 2=pauza
+volatile uint16_t odswiez_ekran = 1;          // czy odswiezyc wyswietlacz
+volatile uint16_t migaj = 0;                  // do migania dwukropka
+volatile uint16_t licznik_ms = 0;             // licznik milisekund
+volatile uint16_t ostatnia_sekunda = 0;       // kiedy ostatnio odliczylismy sekunde
+volatile uint16_t skonczyl = 0;               // czy skonczylo sie odliczanie
 
-// Stany kuchenki
-typedef enum {
-    ZATRZYMANA,
-    DZIALA,
-    PAUZA
-} StanKuchenki;
-
-// Zmienne globalne
-volatile uint16_t pozostalyCzas = 0;  // Czas w sekundach
-volatile StanKuchenki stanKuchenki = ZATRZYMANA;
-volatile uint8_t odswiezWyswietlacz = 1;
-volatile uint8_t mignijDwukropkiem = 0;
-volatile uint32_t czasSystemowy = 0; // Licznik milisekund
-volatile uint32_t ostatniCzasSekundy = 0; // Ostatni czas aktualizacji sekundy
-volatile uint8_t odliczanieZakonczone = 0; // Flaga wskazująca na zakończenie odliczania
-
-// Prototypy funkcji
-void inicjalizujUrzadzenie(void);
-void obslugaPrzyciskow(void);
-void aktualizujWyswietlacz(void);
-void rozpocznijOdliczanie(void);
-void zatrzymajOdliczanie(void);
-void resetujKuchenke(void);
-void obslugaCzasu(void);
-
-// Funkcja przerwania Timer1 - zwiększa licznik milisekund
+// Przerwanie od Timer1 (1ms)
 void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
 {
-    IFS0bits.T1IF = 0;  // Wyczyść flagę przerwania
+    IFS0bits.T1IF = 0;          // wyczysc flage przerwania
     
-    // Zwiększ licznik czasu systemowego (każde przerwanie to 1ms)
-    czasSystemowy++;
+    licznik_ms++;               // zwieksz licznik milisekund
     
-    // Miganie dwukropka co 500ms
-    if (czasSystemowy % 500 == 0) {
-        mignijDwukropkiem = !mignijDwukropkiem;
-        if (stanKuchenki == PAUZA) {
-            odswiezWyswietlacz = 1;
-        }
+    // Co 500ms zmien miganie
+    if (licznik_ms % 500 == 0) {
+        migaj = !migaj;        
     }
 }
 
-int main(void) {
-    inicjalizujUrzadzenie();
+// Przerwanie Change Notification - obs?uga przycisk�w
+void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
+    __delay32(200);  // debouncing
     
-    // Główna pętla programu
+    // Przycisk +1min (RD6/CN15)
+    if(PORTDbits.RD6 == 0) {
+        czas_sekundy += 60;     // dodaj 60 sekund = 1 min
+        if (czas_sekundy > 5999) czas_sekundy = 5999; // max 99:59
+        odswiez_ekran = 1;      // odswiez ekran
+    }
+    
+    // Przycisk +10sec (RD7/CN16) 
+    else if(PORTDbits.RD7 == 0) {
+        czas_sekundy += 10;     // dodaj 10 sekund
+        if (czas_sekundy > 5999) czas_sekundy = 5999; // max 99:59
+        odswiez_ekran = 1;      // odswiez ekran
+    }
+    
+    // Przycisk Start/Stop (RD13/CN19)
+    else if(PORTDbits.RD13 == 0) {
+        if (stan == 0 || stan == 2) {      // jesli zatrzymana lub pauza
+            if (czas_sekundy > 0) {         // jesli jest czas do odliczenia
+                zacznij();                  // zacznij odliczanie
+            }
+        } else if (stan == 1) {             // jesli dziala
+            stan = 2;                       // ustaw na pauze
+            odswiez_ekran = 1;             // odswiez ekran
+        }
+    }
+    
+    // Czekaj na zwolnienie przycisk�w
+    while(PORTDbits.RD6 == 0 || PORTDbits.RD7 == 0 || PORTDbits.RD13 == 0);
+    
+    // Wyczysc flage przerwania
+    IFS1bits.CNIF = 0;
+}
+
+int main(void) 
+{
+    ustaw_urzadzenie();
+    
     while (1) {
-        obslugaPrzyciskow();
-        obslugaCzasu();
+        sprawdz_czas();         // sprawdz czy minela sekunda
         
-        if (odswiezWyswietlacz) {
-            aktualizujWyswietlacz();
-            odswiezWyswietlacz = 0;
+        if (odswiez_ekran) {    // jesli trzeba odswiezyc
+            pokaz_na_ekranie();  // pokaz aktualny stan
+            odswiez_ekran = 0; 
+        }
+        
+        // Automatyczne resetowanie po 5 sekundach od zako?czenia
+        static uint16_t czas_gotowe = 0;
+        if (czas_sekundy == 0 && stan == 0 && skonczyl) {
+            czas_gotowe++;
+            if (czas_gotowe > 5000) {  // po 5 sekundach (5000ms)
+                skonczyl = 0;
+                czas_gotowe = 0;
+                odswiez_ekran = 1;
+            }
+        } else {
+            czas_gotowe = 0;
         }
     }
     
-    return EXIT_SUCCESS;
+    return 0;
 }
 
-// Obsługa upływu czasu
-void obslugaCzasu(void) {
-    // Jeśli kuchenka działa i minęło 1000ms, odlicz 1 sekundę
-    if (stanKuchenki == DZIALA && pozostalyCzas > 0) {
-        if (czasSystemowy - ostatniCzasSekundy >= 1000) {
-            pozostalyCzas--;
-            ostatniCzasSekundy = czasSystemowy;
-            odswiezWyswietlacz = 1;
+// Sprawdza czy minela sekunda i odlicza czas
+void sprawdz_czas(void) 
+{
+    // Jesli kuchenka dziala i jest czas do odliczenia
+    if (stan == 1 && czas_sekundy > 0) {
+        // Jesli minelo 1000ms (1 sekunda)
+        if (licznik_ms - ostatnia_sekunda >= 1000) {
+            czas_sekundy--;                 // odlicz sekunde
+            ostatnia_sekunda = licznik_ms;  // zapamietaj kiedy
+            odswiez_ekran = 1;             // odswiez ekran
             
-            // Koniec czasu
-            if (pozostalyCzas == 0) {
-                zatrzymajOdliczanie();
+            // Jesli czas sie skonczyl
+            if (czas_sekundy == 0) {
+                zatrzymaj();                // zatrzymaj kuchenke
             }
         }
     }
 }
 
-void inicjalizujUrzadzenie(void) {
-    // Konfiguracja pinów
-    TRISDbits.TRISD6 = 1;   // RD6 jako wejście (dodaj 1min)
-    TRISDbits.TRISD7 = 1;   // RD7 jako wejście (dodaj 10s)
-    TRISAbits.TRISA7 = 1;   // RA7 jako wejście (start/stop)
-    TRISDbits.TRISD13 = 1;  // RD13 jako wejście (reset)
+// Inicjalizacja urzadzenia
+void ustaw_urzadzenie(void) 
+{
+    AD1PCFG = 0xFFFF;           // wszystkie piny cyfrowe
+    TRISA = 0x0000;             // Port A jako wyj?cie (dla LCD)
+    TRISD = 0xFFFF;             // Port D jako wej?cie (przyciski)
     
-    // Inicjalizacja LCD
+    // Konfiguracja Change Notification interrupts - tak jak w poprzednich zadaniach
+    CNPU1bits.CN15PUE = 1;      // Pull-up dla RD6 (+1min)
+    CNPU1bits.CN16PUE = 1;      // Pull-up dla RD7 (+10sec)  
+    CNPU2bits.CN19PUE = 1;      // Pull-up dla RD13 (Start/Stop)
+    
+    // W??czenie przerwa? Change Notification
+    CNEN1bits.CN15IE = 1;       // W??cz przerwanie dla RD6
+    CNEN1bits.CN16IE = 1;       // W??cz przerwanie dla RD7
+    CNEN2bits.CN19IE = 1;       // W??cz przerwanie dla RD13
+    
+    IFS1bits.CNIF = 0;          // Wyczy?? flag? przerwania CN
+    IEC1bits.CNIE = 1;          // W??cz przerwania CN
+    
+    // Uruchomienie LCD
     LCD_Initialize();
     LCD_ClearScreen();
     
-    // Konfiguracja Timer1 (1 milisekunda) - POPRAWIONA
-    T1CON = 0;              // Wyczyść rejestr kontrolny
-    TMR1 = 0;               // Wyczyść licznik
-    PR1 = FCY/1000;         // Ustawienie na 1ms (FCY = 4MHz)
-    T1CONbits.TCKPS = 0b00; // Prescaler 1:1
-    IPC0bits.T1IP = 3;      // Priorytet przerwania
-    IFS0bits.T1IF = 0;      // Wyczyść flagę przerwania
-    IEC0bits.T1IE = 1;      // Włącz przerwanie
-    T1CONbits.TON = 1;      // Włącz timer
+    // Ustaw timer na 1ms
+    T1CON = 0;                  // wyczysc ustawienia timera
+    TMR1 = 0;                   // wyczysc licznik
+    PR1 = FCY/1000;             // ustaw na 1ms
+    T1CONbits.TCKPS = 0b00;     // bez dzielnika
+    IPC0bits.T1IP = 3;          // priorytet 3 (ni?szy ni? CN)
+    IFS0bits.T1IF = 0;          // wyczysc flage
+    IEC0bits.T1IE = 1;          // wlacz przerwanie
+    T1CONbits.TON = 1;          // wlacz timer
     
-    // Wyświetl początkowy stan
-    LCD_PutString("GOTOWE ZA:", 10); 
-    LCD_PutChar('\n');      // Przejście do drugiej linii
+    // Tekst poczatkowy
+    LCD_PutString("GOTOWE ZA:", 10);
+    LCD_PutChar('\n');         
     LCD_PutString("Czas: 00:00", 11);
     
-    // Włącz przerwania
-    INTCON1bits.NSTDIS = 0; // Włącz zagnieżdżone przerwania
+    // W??cz przerwania globalne
+    INTCON1bits.NSTDIS = 0;
 }
 
-void obslugaPrzyciskow(void) {
-    static uint8_t poprzedniStanRD6 = 1;
-    static uint8_t poprzedniStanRD7 = 1;
-    static uint8_t poprzedniStanRA7 = 1;
-    static uint8_t poprzedniStanRD13 = 1;
+// Pokazuje aktualny stan na wyswietlaczu
+void pokaz_na_ekranie(void) 
+{
+    char tekst[17];                   
+    uint16_t minuty = czas_sekundy / 60;     // ile minut
+    uint16_t sekundy = czas_sekundy % 60;    // ile sekund
     
-    // Obsługa przycisku dodającego 1 minutę
-    if (poprzedniStanRD6 == 1 && BTN_ADD_1MIN == 0) {
-        pozostalyCzas += 60;  // Dodaj 60 sekund
-        odswiezWyswietlacz = 1;
-    }
-    poprzedniStanRD6 = BTN_ADD_1MIN;
-    
-    // Obsługa przycisku dodającego 10 sekund
-    if (poprzedniStanRD7 == 1 && BTN_ADD_10SEC == 0) {
-        pozostalyCzas += 10;  // Dodaj 10 sekund
-        odswiezWyswietlacz = 1;
-    }
-    poprzedniStanRD7 = BTN_ADD_10SEC;
-    
-    // Obsługa przycisku Start/Stop
-    if (poprzedniStanRA7 == 1 && BTN_START_STOP == 0) {
-        if (stanKuchenki == ZATRZYMANA || stanKuchenki == PAUZA) {
-            if (pozostalyCzas > 0) {
-                rozpocznijOdliczanie();
-            }
-        } else {
-            stanKuchenki = PAUZA;
-            odswiezWyswietlacz = 1;
-        }
-    }
-    poprzedniStanRA7 = BTN_START_STOP;
-    
-    // Obsługa przycisku Reset
-    if (poprzedniStanRD13 == 1 && BTN_RESET == 0) {
-        resetujKuchenke();
-    }
-    poprzedniStanRD13 = BTN_RESET;
-}
-
-void aktualizujWyswietlacz(void) {
-    char bufor[17];
-    uint8_t minuty = pozostalyCzas / 60;
-    uint8_t sekundy = pozostalyCzas % 60;
-    
-    // Wyczyść ekran i wyświetl od początku
     LCD_ClearScreen();
     
-    // Wyświetl stan kuchenki w pierwszej linii
-    switch (stanKuchenki) {
-        case ZATRZYMANA:
-            if (pozostalyCzas == 0) {
-                // Sprawdź, czy to jest stan po zakończeniu odliczania czy reset/inicjalizacja
-                if (odliczanieZakonczone) {
-                    // To zakończone odliczanie
-                    LCD_PutString("GOTOWE", 6);
-                } else {
-                    // To stan początkowy lub reset
-                    LCD_PutString("GOTOWE ZA:", 10);
-                }
-            } else {
-                // Gdy czas jest nastawiony, ale kuchenka nie działa
-                LCD_PutString("GOTOWE ZA:", 10);
+    if (stan == 0) {                    // zatrzymana
+        if (czas_sekundy == 0) {
+            if (skonczyl) {             // po zako?czeniu gotowania
+                LCD_PutString("GOTOWE", 6);
+            } else {                    // stan pocz?tkowy
+                LCD_PutString("GOTOWE ZA:", 10); 
             }
-            break;
-        case DZIALA:
-            LCD_PutString("Pracuje", 7);
-            // Gdy kuchenka działa, ustawiamy flagę, że może nastąpić zakończenie odliczania
-            odliczanieZakonczone = 1;
-            break;
-        case PAUZA:
-            LCD_PutString("Pauza", 5);
-            break;
+        } else {
+            LCD_PutString("GOTOWE ZA:", 10);  // ustawiono czas, ale nie wystartowano
+        }
+    } else if (stan == 1) {             // dzia?a
+        LCD_PutString("Pracuje", 7);
+        skonczyl = 1;                   
+    } else if (stan == 2) {             // pauza
+        LCD_PutString("Pauza", 5);
     }
     
-    // Przejdź do drugiej linii
     LCD_PutChar('\n');
     
-    // Wyświetl czas lub komunikat w drugiej linii
-    if (stanKuchenki == ZATRZYMANA && pozostalyCzas == 0 && odliczanieZakonczone) {
-        // Stan po zakończeniu odliczania
+    // Drugi wiersz
+    if (stan == 0 && czas_sekundy == 0 && skonczyl) {
         LCD_PutString("SMACZNEGO!", 10);
     } else {
-        // Wyświetl czas w drugiej linii
-        if (stanKuchenki == PAUZA && mignijDwukropkiem) {
-            sprintf(bufor, "Czas: %02d %02d", minuty, sekundy);
+        // W trybie pauzy migaj dwukropkiem
+        if (stan == 2 && migaj) {
+            sprintf(tekst, "Czas: %02d %02d", minuty, sekundy);
         } else {
-            sprintf(bufor, "Czas: %02d:%02d", minuty, sekundy);
+            sprintf(tekst, "Czas: %02d:%02d", minuty, sekundy);
         }
-        LCD_PutString(bufor, 11);
+        LCD_PutString(tekst, 11);
     }
 }
 
-void zatrzymajOdliczanie(void) {
-    stanKuchenki = ZATRZYMANA;
-    odswiezWyswietlacz = 1;
-    
-    // Wyświetl komunikat tylko po zakończeniu odliczania, a nie przy resecie
-    if (pozostalyCzas == 0) {
-        // Komunikat końcowy będzie wyświetlony w funkcji aktualizujWyswietlacz
-    }
+// Zatrzymanie odliczania
+void zatrzymaj(void) 
+{
+    stan = 0;                   // ustaw stan na zatrzymana
+    odswiez_ekran = 1;         // odswiez ekran
 }
 
-void resetujKuchenke(void) {
-    pozostalyCzas = 0;
-    stanKuchenki = ZATRZYMANA;
-    
-    // Resetujemy zmienną globalną
-    odliczanieZakonczone = 0;
-    
-    odswiezWyswietlacz = 1;
-}
-
-void rozpocznijOdliczanie(void) {
-    stanKuchenki = DZIALA;
-    ostatniCzasSekundy = czasSystemowy; // Ustaw czas początkowy
-    odswiezWyswietlacz = 1;
+// Zaczyna odliczanie
+void zacznij(void) 
+{
+    stan = 1;                           // stan - dziala
+    ostatnia_sekunda = licznik_ms;      // zapamietaj czas startu
+    odswiez_ekran = 1;                 // odswiez ekran
 }
