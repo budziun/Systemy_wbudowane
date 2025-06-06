@@ -23,12 +23,18 @@
 #include <stdlib.h>
 #include <xc.h>
 #include <libpic30.h>
-#include "p24FJ128GA010.h"
 #include "lcd.h"
 
 // Deklaracja zegara systemowego
 #define XTAL_FREQ 8000000
 #define FCY 4000000
+
+// DEKLARACJE FUNKCJI - DODANE
+void sprawdz_czas(void);
+void ustaw_urzadzenie(void);
+void pokaz_na_ekranie(void);
+void zatrzymaj(void);
+void zacznij(void);
 
 // Zmienne globalne - volatile bo u?ywane w przerwaniach
 volatile uint16_t czas_sekundy = 0;           // ile sekund zostalo
@@ -52,9 +58,9 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
     }
 }
 
-// Przerwanie Change Notification - obs?uga przycisków
+// Przerwanie Change Notification - obsluga przyciskow
 void __attribute__((interrupt, no_auto_psv)) _CNInterrupt(void) {
-    __delay32(200);  // debouncing
+    __delay32(FCY/100);  // POPRAWIONE - debouncing 10ms
     
     // Przycisk +1min (RD6/CN15)
     if(PORTDbits.RD6 == 0) {
@@ -144,18 +150,19 @@ void ustaw_urzadzenie(void)
     TRISA = 0x0000;             // Port A jako wyj?cie (dla LCD)
     TRISD = 0xFFFF;             // Port D jako wej?cie (przyciski)
     
-    // Konfiguracja Change Notification interrupts - tak jak w poprzednich zadaniach
+    // Konfiguracja Change Notification interrupts
+    
     CNPU1bits.CN15PUE = 1;      // Pull-up dla RD6 (+1min)
-    CNPU1bits.CN16PUE = 1;      // Pull-up dla RD7 (+10sec)  
+    CNPU2bits.CN16PUE = 1;      // Pull-up dla RD7 (+10sec)
     CNPU2bits.CN19PUE = 1;      // Pull-up dla RD13 (Start/Stop)
     
     // W??czenie przerwa? Change Notification
-    CNEN1bits.CN15IE = 1;       // W??cz przerwanie dla RD6
-    CNEN1bits.CN16IE = 1;       // W??cz przerwanie dla RD7
-    CNEN2bits.CN19IE = 1;       // W??cz przerwanie dla RD13
+    CNEN1bits.CN15IE = 1;       // Wlacz przerwanie dla RD6
+    CNEN2bits.CN16IE = 1;       // Wlacz przerwanie dla RD7
+    CNEN2bits.CN19IE = 1;       // Wlacz przerwanie dla RD13
     
-    IFS1bits.CNIF = 0;          // Wyczy?? flag? przerwania CN
-    IEC1bits.CNIE = 1;          // W??cz przerwania CN
+    IFS1bits.CNIF = 0;          // Wyczysc flage przerwania CN
+    IEC1bits.CNIE = 1;          // Wlacz przerwania CN
     
     // Uruchomienie LCD
     LCD_Initialize();
@@ -164,9 +171,9 @@ void ustaw_urzadzenie(void)
     // Ustaw timer na 1ms
     T1CON = 0;                  // wyczysc ustawienia timera
     TMR1 = 0;                   // wyczysc licznik
-    PR1 = FCY/1000;             // ustaw na 1ms
+    PR1 = FCY/1000 - 1;         // POPRAWIONE - ustaw na 1ms
     T1CONbits.TCKPS = 0b00;     // bez dzielnika
-    IPC0bits.T1IP = 3;          // priorytet 3 (ni?szy ni? CN)
+    IPC0bits.T1IP = 3;          // priorytet 3 (nizszy niz CN)
     IFS0bits.T1IF = 0;          // wyczysc flage
     IEC0bits.T1IE = 1;          // wlacz przerwanie
     T1CONbits.TON = 1;          // wlacz timer
@@ -191,15 +198,15 @@ void pokaz_na_ekranie(void)
     
     if (stan == 0) {                    // zatrzymana
         if (czas_sekundy == 0) {
-            if (skonczyl) {             // po zako?czeniu gotowania
+            if (skonczyl) {             // po zakonczeniu gotowania
                 LCD_PutString("GOTOWE", 6);
-            } else {                    // stan pocz?tkowy
+            } else {                    // stan poczatkowy
                 LCD_PutString("GOTOWE ZA:", 10); 
             }
         } else {
             LCD_PutString("GOTOWE ZA:", 10);  // ustawiono czas, ale nie wystartowano
         }
-    } else if (stan == 1) {             // dzia?a
+    } else if (stan == 1) {             // dziala
         LCD_PutString("Pracuje", 7);
         skonczyl = 1;                   
     } else if (stan == 2) {             // pauza
